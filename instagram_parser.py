@@ -10,12 +10,10 @@ from time import sleep
 
 def send_to_telegram(filename, format):
 
-	apiToken = config.BOT_TOKEN
-	chatID = config.ID_CHANNEL
 	filename = f'C:\\Users\\saycry\\YandexDisk\\Projects\\rat_story_bot\\aleshinaa\\{filename}'
 
 	if format == 'jpg':
-		apiURL = f'https://api.telegram.org/bot{apiToken}/sendPhoto'
+		apiURL = f'https://api.telegram.org/bot{config.BOT_TOKEN}/sendPhoto'
 		photo = open(filename, 'rb')
 
 		parameters = {
@@ -28,13 +26,12 @@ def send_to_telegram(filename, format):
 
 		try:
 			response = requests.get(apiURL, data = parameters, files = files)
+			print(response.text)
 		except Exception as e:
 			print(e)
 
-
-
 	if format == 'mp4':
-		apiURL = f'https://api.telegram.org/bot{apiToken}/sendVideo'
+		apiURL = f'https://api.telegram.org/bot{config.BOT_TOKEN}/sendVideo'
 		video = open(filename, 'rb')
 
 		parameters = {
@@ -47,12 +44,32 @@ def send_to_telegram(filename, format):
 
 		try:
 			response = requests.get(apiURL, data = parameters, files = files)
+			print(response.text)
 		except Exception as e:
 			print(e)
 	
 	print('отправил фото в телеграм!')
 
+def send_sticker_to_telegram():
 
+	filename = f'C:\\Users\\saycry\\YandexDisk\\Projects\\rat_story_bot\\sticker\\rat.webp'
+
+	apiURL = f'https://api.telegram.org/bot{config.BOT_TOKEN}/sendSticker'
+	sticker = open(filename, 'rb')
+
+	parameters = {
+		"chat_id" : config.ID_CHANNEL,
+	}
+	
+	files = {
+		"sticker" : sticker
+	}
+
+	try:
+		response = requests.get(apiURL, data = parameters, files = files)
+		print(response.text)
+	except Exception as e:
+		print(e)
 
 
 def check_stories():
@@ -64,7 +81,8 @@ def check_stories():
 	user_id = cl.user_id_from_username("aleshina.alena.k")
 	user_stories = cl.user_stories(user_id)
 
-	stories_pk = []
+	sticker_checker = 0
+	count_of_stories = 0
 
 	for index, story in enumerate(user_stories):
 		insta_dict = dict((item, value) for item, value in story)
@@ -74,7 +92,7 @@ def check_stories():
 				if row['id'] == insta_dict['id']:
 					break
 			else:
-				names_of_content = os.listdir('aleshinaa')
+				count_of_stories =+ 1
 				names_of_content = sorted([int(re.sub(r'(.*)\.(.*)', r'\1', row)) for row in names_of_content if (re.sub(r'(.*)\.(.*)', r'\1', row)).isdigit()])
 				if names_of_content == []:
 					filename = 1
@@ -85,6 +103,10 @@ def check_stories():
 				with open('aleshinaa/datas/data.csv', 'a', newline='', encoding='utf-8') as f:
 					writer = csv.DictWriter(f, fieldnames=insta_dict.keys())
 					writer.writerow(insta_dict)
+				if sticker_checker == 0:
+					send_sticker_to_telegram()
+					sticker_checker += 1
+				names_of_content = os.listdir('aleshinaa')
 				if insta_dict['video_url'] == None:
 					filename_format = f'{filename}.jpg'
 					send_to_telegram(filename_format, format='jpg' )
@@ -93,3 +115,4 @@ def check_stories():
 					send_to_telegram(filename_format, format='mp4')
 
 	print('я обновил сториз!')
+	return count_of_stories
