@@ -3,10 +3,20 @@ from instagrapi import Client
 import csv
 import os
 import re
-from collections import defaultdict
 import requests
 import config
-from time import sleep
+from random import randint
+from datetime import datetime, time
+from random import randint
+import pytz
+
+# random_agent = ['google', 'redfin', 'Pixel 5', 'qcom', '1080x2340', '440', '12', '31', '244.1.0.19.110', '384108453']
+# s_local = 'en_US'
+# s_country = 'US'
+# this_timezone = 30600
+
+cl = Client()
+cl.login(config.INSTAGRAM_USERNAME, config.INSTAGRAM_PASSWORD)
 
 def send_to_telegram(filename, format):
 
@@ -52,7 +62,21 @@ def send_to_telegram(filename, format):
 
 def send_sticker_to_telegram():
 
-	filename = f'C:\\Users\\saycry\\YandexDisk\\Projects\\rat_story_bot\\sticker\\rat.webp'
+	rat_stickers = os.listdir('sticker')
+	rat_stickers.remove('sticker_special')
+
+	moscow_time_zone = pytz.timezone('Europe/Moscow')
+	moscow_time = datetime.now(tz=moscow_time_zone)
+	moscow_time = moscow_time.time()
+
+	if moscow_time <= time(7,00):
+		sticker = 'sticker_special\\rat_sleep.webp'
+	elif moscow_time <= time(10,00):
+		sticker = 'sticker_special\\rat_morning.webp'
+	else:
+		sticker = rat_stickers[randint(0,36)]
+
+	filename = f'C:\\Users\\saycry\\YandexDisk\\Projects\\rat_story_bot\\sticker\\{sticker}'
 
 	apiURL = f'https://api.telegram.org/bot{config.BOT_TOKEN}/sendSticker'
 	sticker = open(filename, 'rb')
@@ -74,9 +98,6 @@ def send_sticker_to_telegram():
 
 def check_stories():
 	print('начинаю проверять')
-	cl = Client()
-	cl.login(config.INSTAGRAM_USERNAME, config.INSTAGRAM_PASSWORD)
-
 
 	user_id = cl.user_id_from_username("aleshina.alena.k")
 	user_stories = cl.user_stories(user_id)
@@ -93,6 +114,7 @@ def check_stories():
 					break
 			else:
 				count_of_stories =+ 1
+				names_of_content = os.listdir('aleshinaa')
 				names_of_content = sorted([int(re.sub(r'(.*)\.(.*)', r'\1', row)) for row in names_of_content if (re.sub(r'(.*)\.(.*)', r'\1', row)).isdigit()])
 				if names_of_content == []:
 					filename = 1

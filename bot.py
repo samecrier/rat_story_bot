@@ -1,7 +1,7 @@
 import config
 import telebot
 import instagram_parser as ip
-from time import sleep
+import threading
 
 
 bot = telebot.TeleBot(config.BOT_TOKEN)
@@ -20,6 +20,17 @@ def answer_to_message(message):
 			bot.reply_to(message, f"Добавлено {x} новых обновлений")
 	else:
 		bot.reply_to(message, 'Использую одно из слов чтобы обновить ленту: обнови, алешина, алёшина, инст, давай')
+
+def check_new_stories():
+	try:
+		threading.Timer(7200, check_new_stories).start()
+		print('Запускаю плановое обновление')
+		x = ip.check_stories()
+		print(f"Сделал плановое обновление, количество обновлений: {x}")
+	except KeyboardInterrupt:
+		print('Заканчиваю программу')
+
+check_new_stories()
 
 
 bot.infinity_polling(timeout=60, long_polling_timeout = 10)
