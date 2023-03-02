@@ -109,7 +109,7 @@ def check_stories():
 				if row['id'] == insta_dict['id']:
 					break
 			else:
-				count_of_stories =+ 1
+				count_of_stories += 1
 				names_of_content = os.listdir('aleshinaa')
 				names_of_content = sorted([int(re.sub(r'(.*)\.(.*)', r'\1', row)) for row in names_of_content if (re.sub(r'(.*)\.(.*)', r'\1', row)).isdigit()])
 				if names_of_content == []:
