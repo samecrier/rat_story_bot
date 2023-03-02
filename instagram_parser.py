@@ -9,14 +9,13 @@ from random import randint
 from datetime import datetime, time
 from random import randint
 import pytz
+import logging
 
 # random_agent = ['google', 'redfin', 'Pixel 5', 'qcom', '1080x2340', '440', '12', '31', '244.1.0.19.110', '384108453']
 # s_local = 'en_US'
 # s_country = 'US'
 # this_timezone = 30600
 
-cl = Client()
-cl.login(config.INSTAGRAM_USERNAME, config.INSTAGRAM_PASSWORD)
 
 def send_to_telegram(filename, format):
 
@@ -29,16 +28,15 @@ def send_to_telegram(filename, format):
 		parameters = {
 			"chat_id" : config.ID_CHANNEL,
 		}
-		
 		files = {
 			"photo" : photo
 		}
 
 		try:
 			response = requests.get(apiURL, data = parameters, files = files)
-			print(response.text)
+			logging.info(response.text)
 		except Exception as e:
-			print(e)
+			logging.exception(e)
 
 	if format == 'mp4':
 		apiURL = f'https://api.telegram.org/bot{config.BOT_TOKEN}/sendVideo'
@@ -47,18 +45,16 @@ def send_to_telegram(filename, format):
 		parameters = {
 			"chat_id" : config.ID_CHANNEL,
 		}
-		
 		files = {
 			"video" : video
 		}
 
 		try:
 			response = requests.get(apiURL, data = parameters, files = files)
-			print(response.text)
+			logging.info(response.text)
 		except Exception as e:
-			print(e)
-	
-	print('отправил фото в телеграм!')
+			logging.exception(e)
+	logging.info('отправил фото в телеграм!')
 
 def send_sticker_to_telegram():
 
@@ -68,7 +64,6 @@ def send_sticker_to_telegram():
 	moscow_time_zone = pytz.timezone('Europe/Moscow')
 	moscow_time = datetime.now(tz=moscow_time_zone)
 	moscow_time = moscow_time.time()
-
 	if moscow_time <= time(7,00):
 		sticker = 'sticker_special\\rat_sleep.webp'
 	elif moscow_time <= time(10,00):
@@ -77,27 +72,28 @@ def send_sticker_to_telegram():
 		sticker = rat_stickers[randint(0,36)]
 
 	filename = f'C:\\Users\\saycry\\YandexDisk\\Projects\\rat_story_bot\\sticker\\{sticker}'
-
 	apiURL = f'https://api.telegram.org/bot{config.BOT_TOKEN}/sendSticker'
 	sticker = open(filename, 'rb')
 
 	parameters = {
 		"chat_id" : config.ID_CHANNEL,
 	}
-	
 	files = {
 		"sticker" : sticker
 	}
 
 	try:
 		response = requests.get(apiURL, data = parameters, files = files)
-		print(response.text)
+		logging.info(response.text)
 	except Exception as e:
-		print(e)
+		logging.exception(e)
 
 
 def check_stories():
-	print('начинаю проверять')
+	logging.info('начинаю проверять')
+	
+	cl = Client()
+	cl.login(config.INSTAGRAM_USERNAME, config.INSTAGRAM_PASSWORD)
 
 	user_id = cl.user_id_from_username("aleshina.alena.k")
 	user_stories = cl.user_stories(user_id)
@@ -105,7 +101,7 @@ def check_stories():
 	sticker_checker = 0
 	count_of_stories = 0
 
-	for index, story in enumerate(user_stories):
+	for story in user_stories:
 		insta_dict = dict((item, value) for item, value in story)
 		with open('aleshinaa/datas/data.csv', 'r', encoding='utf-8', newline='') as f:
 			csv_reader = csv.DictReader(f, delimiter=',')
@@ -136,5 +132,5 @@ def check_stories():
 					filename_format = f'{filename}.mp4'
 					send_to_telegram(filename_format, format='mp4')
 
-	print('я обновил сториз!')
+	logging.info('я обновил сториз!')
 	return count_of_stories
