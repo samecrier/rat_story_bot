@@ -16,6 +16,7 @@ import logging
 # s_country = 'US'
 # this_timezone = 30600
 
+login_number = 0
 
 def send_to_telegram(filename, format):
 
@@ -91,9 +92,25 @@ def send_sticker_to_telegram():
 
 def check_stories():
 	logging.info('начинаю проверять')
-	
 	cl = Client()
-	cl.login(config.INSTAGRAM_USERNAME, config.INSTAGRAM_PASSWORD)
+	global login_number
+	try:
+		cl.load_settings('settings/dump.json')
+		login_number += 1
+		logging.info(f'Количество входов в инстаграм в текущем сеансе: {login_number}')
+	except Exception as e:
+		print(f'{datetime.now()} // ошибка входа в инстаграм по json, пытаюсь зайти через логин-пароль.')
+		logging.warning('------------------------------Не загрузилась настройка json------------------------------')
+		logging.warning(e)
+		try:
+			cl.login(config.INSTAGRAM_USERNAME, config.INSTAGRAM_PASSWORD)
+			cl.dump_settings('settings/dump.json')
+			login_number += 1
+			logging.info(f'Количество входов в инстаграм в текущем сеансе: {login_number}')
+		except Exception as e:
+			print(f'{datetime.now()} // не удалось зайти в инстаграм')
+			logging.critical('Не удалось зайти в инстаграм')
+			logging.critical(e)
 
 	user_id = cl.user_id_from_username("aleshina.alena.k")
 	user_stories = cl.user_stories(user_id)

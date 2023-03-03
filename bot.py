@@ -3,6 +3,7 @@ import telebot
 import instagram_parser as ip
 import threading
 import logging
+import random
 
 logging.basicConfig(
 	level=logging.INFO, 
@@ -29,12 +30,13 @@ def answer_to_message(message):
 			bot.reply_to(message, f"Добавлено {x} новых обновлений")
 			logging.info(f'Ответил, что добавил {x} новых обновлений')
 	else:
-		bot.reply_to(message, 'Использую одно из слов чтобы обновить ленту: обнови, алешина, алёшина, инст, давай')
+		bot.reply_to(message, 'Используй одно из слов, чтобы обновить ленту: обнови, алешина, алёшина, инст, давай')
 		logging.info(f'Отправили неверное сообщение "{message.text}"')
 
 def check_new_stories():
 	try:
-		threading.Timer(7200, check_new_stories).start()
+		time_options = [i for i in range(3600, 7200)]
+		threading.Timer(random.choice(time_options), check_new_stories).start()
 		logging.info('Запускаю плановое обновление')
 		x = ip.check_stories()
 		logging.info(f"Сделал плановое обновление, количество обновлений: {x}")
