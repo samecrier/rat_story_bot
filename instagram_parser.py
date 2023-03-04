@@ -96,25 +96,29 @@ def check_stories():
 	global login_number
 	try:
 		cl.load_settings('settings/dump.json')
+		cl.get_timeline_feed()
 		login_number += 1
 		logging.info(f'Количество входов в инстаграм в текущем сеансе: {login_number}')
 	except Exception as e:
 		print(f'{datetime.now()} // ошибка входа в инстаграм по json, пытаюсь зайти через логин-пароль.')
 		logging.warning('------------------------------Не загрузилась настройка json------------------------------')
-		logging.warning(e)
+		logging.exception(e)
 		try:
-			cl.login(config.INSTAGRAM_USERNAME, config.INSTAGRAM_PASSWORD)
+			new_settings = {}
+			cl.set_settings(new_settings)
+			cl.login(config.INSTAGRAM_USERNAME, config.INSTAGRAM_PASSWORD, relogin=True)
+			cl.get_timeline_feed()
 			cl.dump_settings('settings/dump.json')
 			login_number += 1
 			logging.info(f'Количество входов в инстаграм в текущем сеансе: {login_number}')
 		except Exception as e:
 			print(f'{datetime.now()} // не удалось зайти в инстаграм')
 			logging.critical('Не удалось зайти в инстаграм')
-			logging.critical(e)
+			logging.exception(e)
+
 
 	user_id = cl.user_id_from_username("aleshina.alena.k")
 	user_stories = cl.user_stories(user_id)
-
 	sticker_checker = 0
 	count_of_stories = 0
 
