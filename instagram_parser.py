@@ -10,6 +10,15 @@ from datetime import datetime, time
 from random import randint
 import pytz
 import logging
+from moviepy.editor import *
+import openai
+import config
+import pytesseract
+from PIL import Image
+import cv2
+import pytesseract
+import re
+
 
 # random_agent = ['google', 'redfin', 'Pixel 5', 'qcom', '1080x2340', '440', '12', '31', '244.1.0.19.110', '384108453']
 # s_local = 'en_US'
@@ -18,9 +27,9 @@ import logging
 
 login_number = 0
 
-def send_to_telegram(filename, format):
+def send_to_telegram(filename, format, caption=None):
 
-	filename = f'C:\\Users\\saycry\\YandexDisk\\Projects\\rat_story_bot\\aleshinaa\\{filename}'
+	filename = f'C:\\Users\\saycry\\YandexDisk\\Projects\\rat_story_bot\\aleshinaa\\content\\{filename}'
 
 	if format == 'jpg':
 		apiURL = f'https://api.telegram.org/bot{config.BOT_TOKEN}/sendPhoto'
@@ -28,6 +37,7 @@ def send_to_telegram(filename, format):
 
 		parameters = {
 			"chat_id" : config.ID_CHANNEL,
+			"caption" : caption
 		}
 		files = {
 			"photo" : photo
@@ -45,7 +55,9 @@ def send_to_telegram(filename, format):
 
 		parameters = {
 			"chat_id" : config.ID_CHANNEL,
+			"caption" : caption
 		}
+
 		files = {
 			"video" : video
 		}
@@ -89,10 +101,39 @@ def send_sticker_to_telegram():
 	except Exception as e:
 		logging.exception(e)
 
+def mp4_to_mp3(filename):
+	video = VideoFileClip(f"aleshinaa/content/{filename}.mp4")
+	mp3_filename = f"aleshinaa/audio/{filename}.mp3"
+	try:
+		video.audio.write_audiofile(mp3_filename, verbose=False, logger=None)
+	except AttributeError:
+		return None
+	openai.api_key = config.OPENAI_API_KEY
+	audio_file = open(mp3_filename, "rb")
+	transcript = openai.Audio.transcribe("whisper-1", audio_file)
+	transcript_final = transcript['text']
+	return transcript_final.encode('utf-8').decode()
+
+
+def text_transcription(img, size=500):
+	pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract'
+	scale_percent = int(size)# Процент от изначального размера
+	image = cv2.imread(img)
+	width = int(image.shape[1] * scale_percent / 100)
+	height = int(image.shape[0] * scale_percent / 100)
+	dim = (width, height)
+	resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+	gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+	text = pytesseract.image_to_string(gray, lang="rus+eng")
+	text = re.sub(r'\n\n', r'\n', text)
+	return text
+
 
 def check_stories():
 	logging.info('начинаю проверять')
 	cl = Client()
+	cl.request_timeout = randint(5, 20)
+	# cl.set_proxy('http://chentcovru:qR2siEhkJ2@108.165.218.104:50100')
 	global login_number
 	try:
 		cl.load_settings('settings/dump.json')
@@ -116,7 +157,6 @@ def check_stories():
 			logging.critical('Не удалось зайти в инстаграм')
 			logging.exception(e)
 
-
 	user_id = cl.user_id_from_username("aleshina.alena.k")
 	user_stories = cl.user_stories(user_id)
 	sticker_checker = 0
@@ -131,27 +171,31 @@ def check_stories():
 					break
 			else:
 				count_of_stories += 1
-				names_of_content = os.listdir('aleshinaa')
+				names_of_content = os.listdir('aleshinaa/content')
 				names_of_content = sorted([int(re.sub(r'(.*)\.(.*)', r'\1', row)) for row in names_of_content if (re.sub(r'(.*)\.(.*)', r'\1', row)).isdigit()])
 				if names_of_content == []:
 					filename = 1
 				else:
 					filename = names_of_content[-1]+1
 				insta_dict['filename'] = filename
-				cl.story_download(story.pk, filename=filename, folder="aleshinaa")
-				with open('aleshinaa/datas/data.csv', 'a', newline='', encoding='utf-8') as f:
-					writer = csv.DictWriter(f, fieldnames=insta_dict.keys())
-					writer.writerow(insta_dict)
+				cl.story_download(story.pk, filename=filename, folder="aleshinaa/content")
 				if sticker_checker == 0:
 					send_sticker_to_telegram()
 					sticker_checker += 1
-				names_of_content = os.listdir('aleshinaa')
+				names_of_content = os.listdir('aleshinaa/content')
 				if insta_dict['video_url'] == None:
 					filename_format = f'{filename}.jpg'
-					send_to_telegram(filename_format, format='jpg' )
+					image_transcription = text_transcription(f'aleshinaa/content/{filename_format}')
+					insta_dict['transcription'] = [image_transcription]
+					send_to_telegram(filename_format, format='jpg', caption=image_transcription)
 				else:
 					filename_format = f'{filename}.mp4'
-					send_to_telegram(filename_format, format='mp4')
+					mp4_transcription = mp4_to_mp3(filename)
+					insta_dict['transcription'] = [mp4_transcription]
+					send_to_telegram(filename_format, format='mp4', caption=mp4_transcription)
+				with open('aleshinaa/datas/data.csv', 'a', newline='', encoding='utf-8') as f:
+					writer = csv.DictWriter(f, fieldnames=insta_dict.keys())
+					writer.writerow(insta_dict)
 
 	logging.info('я обновил сториз!')
 	return count_of_stories

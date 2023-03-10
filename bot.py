@@ -35,7 +35,7 @@ def answer_to_message(message):
 
 def check_new_stories():
 	try:
-		time_options = [i for i in range(3600, 7200)]
+		time_options = [i for i in range(7200, 14400)]
 		threading.Timer(random.choice(time_options), check_new_stories).start()
 		logging.info('Запускаю плановое обновление')
 		x = ip.check_stories()
